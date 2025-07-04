@@ -1,5 +1,5 @@
 import express from "express";
-import { status } from "#controllers/status.controller.js";
+import { status } from "#pages/api/v1/status/index.js";
 
 const app = express();
 const port = process.env.PORT ?? "9001";

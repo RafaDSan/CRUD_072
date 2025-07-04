@@ -21,8 +21,8 @@
     "services:stop": "docker compose --file src/infra/compose.yaml stop",
     "services:down": "docker compose --file src/infra/compose.yaml down",
     "services:wait:database": "node src/infra/scripts/wait-for-mysql.js",
-    "mgirations:create": "db-migrate --migrations-dir src/infra/migrations create",
-    "mgirations:up": "db-migrate --migrations-dir src/infra/migrations up",
+    "migrations:create": "db-migrate --migrations-dir src/infra/migrations create",
+    "migrations:up": "db-migrate --migrations-dir src/infra/migrations up",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit"
@@ -33,8 +33,7 @@
   "dependencies": {
     "async-retry": "^1.3.3",
     "express": "^5.1.0",
-    "mysql2": "^3.14.1",
-    "next-connect": "^1.0.0"
+    "mysql2": "^3.14.1"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.2",
