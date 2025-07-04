@@ -8,8 +8,8 @@
   },
   "scripts": {
     "start": "node --env-file .env dist/index.js",
-    "dev": "npm run services:up && npm run services:wait:database && npm run mgirations:up && tsx --watch --env-file .env src/index.ts",
-    "test": "npm run services:up && npm run && concurrently --names node-server,vitest --hide node-server --kill-others --success command-vitest  \"npm run server:test\" \"vitest --reporter verbose\"",
+    "dev": "npm run services:up && npm run services:wait:database && npm run migrations:up && tsx --watch --env-file .env src/index.ts",
+    "test": "npm run services:up && npm run services:wait:database && concurrently --names node-server,vitest --hide node-server --kill-others --success command-vitest \"npm run server:test\" \"vitest --reporter verbose\"",
     "posttest": "npm run services:stop",
     "test:run": "vitest --run",
     "test:watch": "vitest --reporter verbose",
@@ -31,9 +31,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/cookie-parser": "^1.4.9",
     "async-retry": "^1.3.3",
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.7",
     "express": "^5.1.0",
-    "mysql2": "^3.14.1"
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.14.1",
+    "uuid": "^11.0.6"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.2",
@@ -45,6 +50,7 @@
     "concurrently": "^9.2.0",
     "db-migrate": "^0.11.14",
     "db-migrate-mysql": "^3.0.0",
+    "dotenv": "^17.0.1",
     "dotenv-cli": "^8.0.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",

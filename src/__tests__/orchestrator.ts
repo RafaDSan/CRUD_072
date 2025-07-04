@@ -23,7 +23,21 @@ async function waitForAllServices(): Promise<void> {
 }
 
 async function clearDatabase() {
-  await query("drop schema public cascade; create schema public");
+
+  await query("SET FOREIGN_KEY_CHECKS = 0;");
+
+
+  const getTablesResult = await query("SHOW TABLES;");
+  const tableNames = getTablesResult.map((row: any) => Object.values(row)[0]);
+
+
+  if (tableNames.length > 0) {
+    const dropTablesQuery = `DROP TABLE IF EXISTS ${tableNames.join(", ")};`;
+    await query(dropTablesQuery);
+  }
+
+
+  await query("SET FOREIGN_KEY_CHECKS = 1;");
 }
 
 const orchestrator = {
