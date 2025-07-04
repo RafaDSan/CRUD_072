@@ -1,28 +1,70 @@
 import { Request, Response } from "express";
 import { query } from "#infra/database.js";
+import { InternalServerError, ServiceError } from "#infra/errors.js";
 
 export async function status(request: Request, response: Response) {
-  const updatedAt = new Date().toISOString();
+  try {
+    const updatedAt = new Date().toISOString();
 
-  const databaseVersionResult = await query("SELECT version();");
-  const databaseVersionValue = databaseVersionResult[0]["version()"];
+    const databaseVersionResult = await query("SELECT version();");
+    if (!databaseVersionResult?.[0]?.["version()"]) {
+      throw new ServiceError({
+        message: "Não foi possível obter a versão do banco de dados.",
+      });
+    }
+    const databaseVersionValue = databaseVersionResult[0]["version()"];
 
-  const databaseMaxConnectionsResult = await query(
-    "SHOW VARIABLES LIKE 'max_connections';"
-  );
-  const databaseMaxConnectionsValue = databaseMaxConnectionsResult[0].Value;
+    const databaseMaxConnectionsResult = await query(
+      "SHOW VARIABLES LIKE 'max_connections';"
+    );
+    if (!databaseMaxConnectionsResult?.[0]?.Value) {
+      throw new ServiceError({
+        message: "Não foi possível obter o número máximo de conexões.",
+      });
+    }
 
-  const databaseOpenedConnections = await query("SHOW PROCESSLIST;");
-  const databaseOpenedConnectionsValue = databaseOpenedConnections.length;
+    const databaseMaxConnectionsValue = parseInt(
+      databaseMaxConnectionsResult[0].Value,
+      10
+    );
+    if (isNaN(databaseMaxConnectionsValue)) {
+      throw new ServiceError({
+        message: "Valor de conexões máximas inválido.",
+      });
+    }
 
-  response.status(200).json({
-    updated_at: updatedAt,
-    dependencies: {
-      database: {
-        version: databaseVersionValue,
-        max_connections: parseInt(databaseMaxConnectionsValue),
-        opened_connections: databaseOpenedConnectionsValue,
+    const databaseOpenedConnections = await query("SHOW PROCESSLIST;");
+    if (!Array.isArray(databaseOpenedConnections)) {
+      throw new ServiceError({
+        message: "Resposta inválida ao consultar conexões abertas.",
+      });
+    }
+    const databaseOpenedConnectionsValue = databaseOpenedConnections.length;
+
+    response.status(200).json({
+      updated_at: updatedAt,
+      dependencies: {
+        database: {
+          version: databaseVersionValue,
+          max_connections: databaseMaxConnectionsValue,
+          opened_connections: databaseOpenedConnectionsValue,
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.log("\n Erro dentro do catch do controller:");
+    console.error(error);
+
+    if (error instanceof ServiceError) {
+      return response.status(error.statusCode).json(error.toJSON());
+    }
+
+    const publicErrorObject = new InternalServerError({
+      cause: error,
+    });
+
+    return response
+      .status(publicErrorObject.statusCode)
+      .json(publicErrorObject.toJSON());
+  }
 }
