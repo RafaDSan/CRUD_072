@@ -1,22 +1,33 @@
-import { Request, Response } from "express";
+import { Router, Request, Response } from "express";
 import { query } from "#infra/database.js";
-import { InternalServerError, ServiceError } from "#infra/errors.js";
+import { ServiceError, InternalServerError } from "#infra/errors.js";
+import { asyncHandler, methodNotAllowed } from "#infra/controller.js";
 
-export async function status(request: Request, response: Response) {
+const statusRouter = Router();
+
+statusRouter.get("/", asyncHandler(getHandler));
+
+statusRouter.all("/", methodNotAllowed);
+
+export default statusRouter;
+
+async function getHandler(request: Request, response: Response) {
   try {
     const updatedAt = new Date().toISOString();
 
     const databaseVersionResult = await query("SELECT version();");
+
     if (!databaseVersionResult?.[0]?.["version()"]) {
       throw new ServiceError({
         message: "Não foi possível obter a versão do banco de dados.",
       });
     }
-    const databaseVersionValue = databaseVersionResult[0]["version()"];
 
+    const databaseVersionValue = databaseVersionResult[0]["version()"];
     const databaseMaxConnectionsResult = await query(
       "SHOW VARIABLES LIKE 'max_connections';"
     );
+
     if (!databaseMaxConnectionsResult?.[0]?.Value) {
       throw new ServiceError({
         message: "Não foi possível obter o número máximo de conexões.",
@@ -27,6 +38,7 @@ export async function status(request: Request, response: Response) {
       databaseMaxConnectionsResult[0].Value,
       10
     );
+
     if (isNaN(databaseMaxConnectionsValue)) {
       throw new ServiceError({
         message: "Valor de conexões máximas inválido.",
@@ -34,11 +46,13 @@ export async function status(request: Request, response: Response) {
     }
 
     const databaseOpenedConnections = await query("SHOW PROCESSLIST;");
+
     if (!Array.isArray(databaseOpenedConnections)) {
       throw new ServiceError({
         message: "Resposta inválida ao consultar conexões abertas.",
       });
     }
+
     const databaseOpenedConnectionsValue = databaseOpenedConnections.length;
 
     response.status(200).json({
@@ -56,15 +70,12 @@ export async function status(request: Request, response: Response) {
     console.error(error);
 
     if (error instanceof ServiceError) {
-      return response.status(error.statusCode).json(error.toJSON());
+      response.status(error.statusCode).json(error.toJSON());
+    } else {
+      const publicErrorObject = new InternalServerError({ cause: error });
+      response
+        .status(publicErrorObject.statusCode)
+        .json(publicErrorObject.toJSON());
     }
-
-    const publicErrorObject = new InternalServerError({
-      cause: error,
-    });
-
-    return response
-      .status(publicErrorObject.statusCode)
-      .json(publicErrorObject.toJSON());
   }
 }
